@@ -193,6 +193,19 @@ impl<K: HeapSizeOf, V: HeapSizeOf> HeapSizeOf for HashMap<K, V>
     }
 }
 
+
+#[cfg(feature = "unstable")]
+impl<K: HeapSizeOf, V: HeapSizeOf, S> HeapSizeOf for HashSet<K, V, S>
+    where K: Eq + Hash, S: BuildHasher {
+    fn heap_size_of_children(&self) -> usize {
+        //TODO(#6908) measure actual bucket memory usage instead of approximating
+        let size = self.capacity() * (size_of::<V>() + size_of::<K>());
+        self.iter().fold(size, |n, (key, value)| {
+            n + key.heap_size_of_children() + value.heap_size_of_children()
+        })
+    }
+}
+
 // PhantomData is always 0.
 impl<T> HeapSizeOf for PhantomData<T> {
     fn heap_size_of_children(&self) -> usize {
